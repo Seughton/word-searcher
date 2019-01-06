@@ -1,16 +1,17 @@
 const fs = require('fs');
 const axios = require('axios');
-// var _ = require('lodash');
 
 // copy ->> node index.js https://en.wikipedia.org/wiki/Dog 5 intelligence
 
-fs.writeFile("result.txt", "",(err) => {
-  if (err){
-    console.log('Result.txt Created')
-  } else {
-    console.log(err)
-  }
+let url = process.argv[2];
+
+// create a file result.txt
+fs.writeFile("result.txt", "", (err) => {
+  err ?  
+  console.log('Result.txt Created') : 
+  console.log(err)  
 })
+
 // get search word
 const getWordFromArg = /[^https://en.wikipedia.org/wiki/]\S+/g
 const argWord = process.argv[2].match(getWordFromArg).join('')
@@ -43,11 +44,9 @@ hitsCounter = (arr) => {
 
 // clear 'file.txt'
 fs.truncate('result.txt', 0, (err) => {
-  if (err) {
-    console.log('CAN\'T CLEAR FILE')
-  } else {
-    console.log('FILE IS CLEAR')
-  }
+  err ?  
+  console.log('CAN\'T CLEAR FILE') : 
+  console.log('FILE IS CLEAR')  
 })
 
 async function getDataFromUrl(url, depth) {
@@ -61,14 +60,21 @@ async function getDataFromUrl(url, depth) {
 
     word.forEach((item) => {
       if (item.match(findAllWord)) {
-        let links = item.match(findAllWord)
-        links.forEach((item) => {
+        item.match(findAllWord) //list of links
+        .forEach((item) => {
           LINKS.push(item.replace(/"/g, ''))
         })
       }
     })
 
-    if (depth < 1 || !depth) { 
+    // deep search
+    if (depth > 0) {
+      getDataFromUrl(`https://en.wikipedia.org${LINKS[depth - 1]}`, depth - 1);
+    } else if (depth == 0 && process.argv[4]) {
+      getDataFromUrl(`${process.argv[2]}_${process.argv[4]}`, depth - 1)
+    }
+
+    if (depth == 0 || !depth) {
       // count of hits
       hitsCounter(LINKS)
       //  sort by hits
@@ -78,26 +84,18 @@ async function getDataFromUrl(url, depth) {
         b = regExpDigit.exec(b);
         return b - a;
       }).forEach((item, i) => {
-        console.log(item)
-        fs.appendFile('result.txt', `https://en.wikipedia.org${item} \n`, function (err) {
-          if (err) {
-            console.log(err)
-          } else {
-            // console.log(item, i)
-          }
+        fs.appendFile('result.txt', `https://en.wikipedia.org${item} \n`, (err) => {
+          err ? 
+          console.log(err) : 
+          null
+          // console.log(item,i)      
         })
-      })    
+      })
     }
-
-    // deep search
-    if (depth > 0) {     
-        getDataFromUrl(`https://en.wikipedia.org${LINKS[depth - 1]}`, depth - 1);      
-    }  
-
-    console.log(depth, url)
+    console.log(`SEARCH IN => ${url}`)
   } catch (e) {
-    console.error(e, ` WRONG LINK`);
+    console.error(`WRONG LINK`);
   }
 }
 
-getDataFromUrl(process.argv[2], parseInt(process.argv[3]), process.argv[4])
+getDataFromUrl(url, parseInt(process.argv[3]))
